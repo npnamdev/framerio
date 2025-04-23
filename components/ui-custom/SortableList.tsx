@@ -1,62 +1,90 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-} from "@dnd-kit/core";
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-    useSortable,
-} from "@dnd-kit/sortable";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const API_URL = "http://localhost:8080/api/sections";
-
-interface Section {
-    id: number;
-    position: number;
-    title?: string;
-    image?: string;
-    note?: string;
-}
+const API_URL = "https://api.wedly.info/api/sections";
+interface Section { id: number; position: number; title?: string; image?: string; note?: string; }
 
 const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: number) => void }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: section.id });
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
+    const style = { transform: CSS.Transform.toString(transform), transition };
+
+    const [title, setTitle] = useState(section.title || "");
+    const [note, setNote] = useState(section.note || "");
+
+    const handleUpdate = async () => {
+        try {
+            const res = await fetch(`https://api.wedly.info/api/sections/${section.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, note }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                alert("Cập nhật thất bại: " + data.error);
+            } else {
+                alert("Cập nhật thành công");
+            }
+        } catch (err) {
+            console.error("Lỗi khi cập nhật:", err);
+            alert("Lỗi khi cập nhật section.");
+        }
     };
 
     return (
         <div
             ref={setNodeRef}
             style={style}
-            {...attributes}
-            {...listeners}
-            className="p-4 my-2 bg-gray-100 border border-gray-300 rounded min-h-[100px] flex justify-between items-center"
+            className="p-4 my-2 bg-gray-100 border border-gray-300 rounded min-h-[100px]"
         >
-            <div>
-                <h3 className="text-lg font-semibold">📌 {section.title || `Section ${section.id}`}</h3>
-                <p className="text-sm text-gray-600 italic">{section.note}</p>
+            {/* Kéo được ở vùng này */}
+            <div className="flex items-start justify-between cursor-move" {...attributes} {...listeners}>
+                <h3 className="text-lg font-semibold">📌 Section {section.id}</h3>
                 {section.image && (
-                    <img src={section.image} alt="Section" className="mt-2 w-24 h-16 object-cover rounded" />
+                    <img src={section.image} alt="Section" className="ml-4 w-24 h-16 object-cover rounded" />
                 )}
             </div>
-            <button
-                onClick={() => onDelete(section.id)} // Truyền đúng ID để xoá section
-                className="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 z-100"
-            >
-                Xoá
-            </button>
+
+            {/* Input và textarea */}
+            <div className="mt-2">
+                <input
+                    className="w-full p-2 mb-2 border border-gray-300 rounded"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Tiêu đề"
+                />
+                <textarea
+                    className="w-full p-2 border border-gray-300 rounded"
+                    rows={3}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Ghi chú"
+                />
+            </div>
+
+            {/* Các nút thao tác */}
+            <div className="mt-2 flex gap-2">
+                <button
+                    onClick={handleUpdate}
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Cập nhật
+                </button>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onDelete(section.id);
+                    }}
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                    Xoá
+                </button>
+            </div>
         </div>
     );
 };
@@ -65,12 +93,9 @@ const SortableList = () => {
     const [sections, setSections] = useState<Section[]>([]);
     const sensors = useSensors(
         useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    // Lấy danh sách section từ API
     const fetchSections = async () => {
         try {
             const response = await fetch(API_URL);
@@ -84,10 +109,7 @@ const SortableList = () => {
         }
     };
 
-    // Xoá section
     const handleDelete = async (id: number) => {
-        console.log("Xoá section với ID:", id);
-
         if (!confirm("Bạn có chắc chắn muốn xoá section này?")) return;
 
         try {
@@ -108,7 +130,6 @@ const SortableList = () => {
         }
     };
 
-    // Thêm section mới với dữ liệu giả
     const handleAddSection = async () => {
         try {
             const newId = Math.max(0, ...sections.map(s => s.id)) + 1;
@@ -139,7 +160,6 @@ const SortableList = () => {
         }
     };
 
-    // Xử lý sự kiện kết thúc kéo thả
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
@@ -166,19 +186,11 @@ const SortableList = () => {
         }
     };
 
-    useEffect(() => {
-        fetchSections();
-    }, []);
+    useEffect(() => { fetchSections(); }, []);
 
     return (
         <div className="container mx-auto py-4">
-            <button
-                onClick={handleAddSection}
-                className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-                Thêm section
-            </button>
-
+            <button onClick={handleAddSection} >Thêm section</button>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
                     {sections.map((section) => (
