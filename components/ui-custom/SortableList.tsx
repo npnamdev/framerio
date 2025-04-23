@@ -16,9 +16,9 @@ const SortableItem = ({ id }: { id: number }) => {
             style={style}
             {...attributes}
             {...listeners}
-            className="p-4 my-2 bg-gray-100 border border-gray-300 rounded cursor-grab"
+            className="p-4 my-2 bg-gray-100 border border-gray-300 rounded cursor-grab min-h-[400px]"
         >
-            Item {id}
+            section {id}
         </div>
     );
 };
@@ -39,14 +39,49 @@ const SortableList = () => {
         setItems((prev) => arrayMove(prev, oldIndex, newIndex));
     };
 
+    // const handleDragEnd = async (event: DragEndEvent) => {
+    //     const { active, over } = event;
+    //     if (!over || active.id === over.id) return;
+
+    //     const oldIndex = items.indexOf(active.id as number);
+    //     const newIndex = items.indexOf(over.id as number);
+    //     const newItems = arrayMove(items, oldIndex, newIndex);
+
+    //     // Cập nhật state trong frontend
+    //     setItems(newItems);
+
+    //     // Gửi yêu cầu POST để cập nhật vị trí trong cơ sở dữ liệu
+    //     try {
+    //         const response = await fetch('http://localhost:3000/update-sections', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //             },
+    //             body: JSON.stringify({ items: newItems }), // Gửi danh sách id theo thứ tự mới
+    //         });
+
+    //         const data = await response.json();
+    //         if (data.success) {
+    //             console.log('Sections updated successfully!');
+    //         } else {
+    //             console.log('Failed to update sections:', data.error);
+    //         }
+    //     } catch (error) {
+    //         console.log('Error while updating sections:', error);
+    //     }
+    // };
+
+
     return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={items} strategy={verticalListSortingStrategy}>
-                {items.map((id) => (
-                    <SortableItem key={id} id={id} />
-                ))}
-            </SortableContext>
-        </DndContext>
+        <div className="container mx-auto">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={items} strategy={verticalListSortingStrategy}>
+                    {items.map((id) => (
+                        <SortableItem key={id} id={id} />
+                    ))}
+                </SortableContext>
+            </DndContext>
+        </div>
     );
 };
 
