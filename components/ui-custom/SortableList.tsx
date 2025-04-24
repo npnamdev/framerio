@@ -8,7 +8,16 @@ import { CSS } from "@dnd-kit/utilities";
 const API_URL = "https://api.wedly.info/api/sections";
 interface Section { id: number; position: number; title?: string; image?: string; note?: string; }
 
-const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: number) => void }) => {
+
+const SortableItem = ({
+    section,
+    onDelete,
+    onDuplicate
+}: {
+    section: Section;
+    onDelete: (id: number) => void;
+    onDuplicate: (id: number) => void;
+}) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: section.id });
     const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -17,10 +26,10 @@ const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: 
 
     const handleUpdate = async () => {
         try {
-            const res = await fetch(`https://api.wedly.info/api/sections/${section.id}`, {
+            const res = await fetch(`${API_URL}/${section.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, note }),
+                body: JSON.stringify({ title, note })
             });
 
             const data = await res.json();
@@ -41,7 +50,6 @@ const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: 
             style={style}
             className="p-4 my-2 bg-gray-100 border border-gray-300 rounded min-h-[100px]"
         >
-            {/* Kéo được ở vùng này */}
             <div className="flex items-start justify-between cursor-move" {...attributes} {...listeners}>
                 <h3 className="text-lg font-semibold">📌 Section {section.id}</h3>
                 {section.image && (
@@ -49,7 +57,6 @@ const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: 
                 )}
             </div>
 
-            {/* Input và textarea */}
             <div className="mt-2">
                 <input
                     className="w-full p-2 mb-2 border border-gray-300 rounded"
@@ -66,7 +73,6 @@ const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: 
                 />
             </div>
 
-            {/* Các nút thao tác */}
             <div className="mt-2 flex gap-2">
                 <button
                     onClick={handleUpdate}
@@ -75,11 +81,13 @@ const SortableItem = ({ section, onDelete }: { section: Section; onDelete: (id: 
                     Cập nhật
                 </button>
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        onDelete(section.id);
-                    }}
+                    onClick={() => onDuplicate(section.id)}
+                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                >
+                    Duplicate
+                </button>
+                <button
+                    onClick={() => onDelete(section.id)}
                     className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                 >
                     Xoá
@@ -113,14 +121,11 @@ const SortableList = () => {
         if (!confirm("Bạn có chắc chắn muốn xoá section này?")) return;
 
         try {
-            const response = await fetch(`${API_URL}/${id}`, {
-                method: "DELETE",
-            });
-
+            const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
             const data = await response.json();
 
             if (response.ok) {
-                await fetchSections(); // làm mới danh sách
+                await fetchSections();
             } else {
                 alert("Xoá section thất bại: " + data.error);
             }
@@ -132,21 +137,21 @@ const SortableList = () => {
 
     const handleAddSection = async () => {
         try {
-            const newId = Math.max(0, ...sections.map(s => s.id)) + 1;
+            const newId = Math.max(0, ...sections.map((s) => s.id)) + 1;
             const newPosition = sections.length;
 
             const fakeData = {
                 id: newId,
                 position: newPosition,
                 title: `Section ${newId}`,
-                image: "https://picsum.photos/100/60?random=" + newId,
-                note: `Ghi chú cho section ${newId}`,
+                image: `https://picsum.photos/100/60?random=${newId}`,
+                note: `Ghi chú cho section ${newId}`
             };
 
             const res = await fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(fakeData),
+                body: JSON.stringify(fakeData)
             });
 
             const data = await res.json();
@@ -160,12 +165,32 @@ const SortableList = () => {
         }
     };
 
+    const handleDuplicate = async (id: number) => {
+        const newId = Math.max(0, ...sections.map((s) => s.id)) + 1;
+        try {
+            const res = await fetch(`${API_URL}/${id}/duplicate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ newId })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                await fetchSections();
+            } else {
+                alert("Duplicate thất bại: " + data.error);
+            }
+        } catch (err) {
+            console.error("Lỗi khi duplicate section:", err);
+        }
+    };
+
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
-        const oldIndex = sections.findIndex(s => s.id === active.id);
-        const newIndex = sections.findIndex(s => s.id === over.id);
+        const oldIndex = sections.findIndex((s) => s.id === active.id);
+        const newIndex = sections.findIndex((s) => s.id === over.id);
         const newSections = arrayMove(sections, oldIndex, newIndex);
 
         setSections(newSections);
@@ -176,25 +201,36 @@ const SortableList = () => {
                     fetch(`${API_URL}/${section.id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ position: index }),
+                        body: JSON.stringify({ position: index })
                     })
                 )
             );
-            console.log("Cập nhật vị trí thành công.");
         } catch (err) {
             console.error("Lỗi khi cập nhật vị trí:", err);
         }
     };
 
-    useEffect(() => { fetchSections(); }, []);
+    useEffect(() => {
+        fetchSections();
+    }, []);
 
     return (
         <div className="container mx-auto py-4">
-            <button onClick={handleAddSection} >Thêm section</button>
+            <button
+                onClick={handleAddSection}
+                className="px-4 py-2 mb-4 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+                Thêm section
+            </button>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
                     {sections.map((section) => (
-                        <SortableItem key={section.id} section={section} onDelete={handleDelete} />
+                        <SortableItem
+                            key={section.id}
+                            section={section}
+                            onDelete={handleDelete}
+                            onDuplicate={handleDuplicate}
+                        />
                     ))}
                 </SortableContext>
             </DndContext>
