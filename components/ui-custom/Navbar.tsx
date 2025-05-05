@@ -1,43 +1,49 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { User } from 'lucide-react'
+import { useAuth } from "@/context/AuthProvider";
+import Link from "next/link";
 
-const navItems = [
-    { label: 'Trang chủ', href: '/' },
-    { label: 'Đăng nhập', href: '/sign-in' },
-    { label: 'Đăng ký', href: '/sign-up' },
-    { label: 'Quản trị', href: '/manage' },
-]
+const Navbar = () => {
+    const { user, isAuthenticated, logout } = useAuth();
 
-export default function Navbar() {
     return (
-        <nav className="bg-white dark:bg-gray-900 shadow-md fixed top-0 left-0 w-full z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16 items-center">
-                    {/* Logo bên trái */}
-                    <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-white">
-                        Learnify
-                    </Link>
-
-                    {/* Menu điều hướng bên phải */}
-                    <div className="flex space-x-6 items-center">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className="text-gray-700 dark:text-gray-200 hover:text-blue-600 transition"
+        <nav className="bg-gray-800 p-4">
+            <div className="container mx-auto flex justify-between items-center text-white">
+                <div className="text-lg font-semibold">My App</div>
+                <div>
+                    {isAuthenticated ? (
+                        <div className="flex items-center space-x-4">
+                            <p>Welcome, {user?.fullName}</p>
+                            {user?.role?.name === "admin" && (
+                                <Link href="/manage">
+                                    <button className="bg-yellow-500 px-4 py-2 rounded hover:bg-yellow-600">
+                                        Manage
+                                    </button>
+                                </Link>
+                            )}
+                            <button
+                                onClick={logout}
+                                className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
                             >
-                                {item.label}
+                                Logout
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center space-x-4">
+                            <Link href="/sign-in">
+                                <button className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600">
+                                    Login
+                                </button>
                             </Link>
-                        ))}
-                        {/* Avatar/Profile */}
-                        <Link href="/profile" className="ml-2">
-                            <User className="text-gray-700 dark:text-white hover:text-blue-600" size={24} />
-                        </Link>
-                    </div>
+                            <button className="bg-green-500 px-4 py-2 rounded hover:bg-green-600">
+                                Sign Up
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </nav>
-    )
-}
+    );
+};
+
+export default Navbar;

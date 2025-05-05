@@ -1,14 +1,40 @@
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthProvider";
+import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
-  const router = useRouter()
+  const router = useRouter();
+  const { logout, user } = useAuth();
+  const [loading, setLoading] = useState(true);  // Loading state để kiểm tra quyền truy cập
+
+  useEffect(() => {
+    if (!user) {
+      setLoading(false); // Nếu không có user, dừng việc kiểm tra
+      return;
+    }
+
+    // Kiểm tra quyền truy cập
+    if (user.role?.name !== "admin") {
+      router.push("/unauthorized");  // Redirect nếu không phải admin
+    } else {
+      setLoading(false);  // Nếu là admin, dừng loading
+    }
+  }, [user, router]);
 
   const handleLogout = () => {
-    // Xử lý đăng xuất ở đây (xoá token, gọi API, v.v...)
-    // Sau đó chuyển hướng về trang đăng nhập
-    router.push('/login')
+    logout();
+    router.push("/");
+  };
+
+  // Khi đang kiểm tra quyền truy cập
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600 dark:text-gray-300">Đang kiểm tra quyền truy cập...</p>
+      </div>
+    );
   }
 
   return (
@@ -23,5 +49,5 @@ export default function AdminPage() {
         Đăng xuất
       </button>
     </div>
-  )
+  );
 }

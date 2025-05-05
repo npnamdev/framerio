@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 };
 
 import Navbar from '@/components/ui-custom/Navbar';
+import { AuthProvider } from "@/context/AuthProvider";
+import { AuthConsumerWrapper } from "@/components/ui-custom/AuthConsumerWrapper";
 
 export default function RootLayout({
   children,
@@ -30,8 +32,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
       >
-        <Navbar />
-        <main className="pt-16">{children}</main>
+        <AuthProvider>
+          <AuthConsumerWrapper>
+            <Navbar />
+            {children}
+          </AuthConsumerWrapper>
+        </AuthProvider>
       </body>
     </html>
   );
